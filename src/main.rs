@@ -41,8 +41,10 @@ async fn update_clients(harvest: &HarvestClient, rentman: &RentmanClient) {
             harvest_rentman_id == contact.id
         });
 
-        // Client is found, continue to next contact
+        // Client is found, check for updates, then continue to next contact
         if found_client.is_some() {
+            // TODO: check updates
+
             continue;
         }
 
@@ -77,12 +79,15 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
     };
 
     // Get Rentman projects
-    let rentman_projects = match rentman.get_projects().await {
-        Ok(x) => x,
-        Err(e) => {
-            panic!("Error getting Rentman projects: {}", e);
-        }
-    };
+    let rentman_projects = rentman
+        .get_projects()
+        .await
+        .expect("Can't fetch Rentman projects");
+
+    let rentman_subprojects = rentman
+        .get_subprojects()
+        .await
+        .expect("Can't fetch Rentman subprojects");
 
     let mut missing_projects: Vec<MissingProject> = vec![];
 
@@ -93,7 +98,41 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
         }
 
         // If project is BTDB, skip
-        if rentman_project.name.to_lowercase().contains("btdb") {
+        if rentman_project.customer_id == rentman.btdb_id {
+            continue;
+        }
+
+        // Match subproject to project
+        let mut statuses: Vec<&rentman::Status> = vec![];
+
+        let mut is_template = false;
+        for subproject in &rentman_subprojects {
+            if subproject.project_id != rentman_project.id {
+                continue;
+            }
+
+            statuses.push(&subproject.status);
+
+            is_template = subproject.is_template;
+        }
+
+        // Check state
+
+        let mut is_active = true;
+        if !statuses.is_empty() {
+            let first = statuses.first().unwrap();
+
+            if statuses.iter().all(|x| x == first) {
+                match first {
+                    rentman::Status::Geannuleerd => is_active = false,
+                    rentman::Status::Retour => is_active = false,
+                    _ => {}
+                }
+            }
+        }
+
+        // if project contains template, skip
+        if is_template {
             continue;
         }
 
@@ -112,13 +151,16 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
             harvest_rentman_id == rentman_project.id
         });
 
-        // Project is found, continue to next contact
+        // Project is found, Check for updates, then continue.
         if found_project.is_some() {
+            // TODO: check updates
+
             continue;
         }
 
         // Push missing project to vec
         missing_projects.push(MissingProject {
+            is_active,
             rentman_id: rentman_project.id.to_string(),
             name: rentman_project.name,
             rentman_client_id: rentman_project.customer_id,
@@ -164,6 +206,7 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
 
         harvest
             .create_project(harvest::CreateProject {
+                is_active: project.is_active,
                 name: project.name,
                 client_id,
                 code: project.pp_id,
@@ -189,9 +232,13 @@ async fn main() {
     let nvt_client = std::env::var("HARVEST_NVT_CLIENT")
         .expect("No Harvest NVT Client defined")
         .parse::<i64>()
-        .unwrap();
+        .expect("Harvest NVT client is not a valid number");
 
     let rentman_token = std::env::var("RENTMAN_TOKEN").expect("No Rentman token defined");
+    let btdb_id = std::env::var("RENTMAN_BTDB_ID")
+        .expect("No Rentman BTDB ID defined")
+        .parse::<i64>()
+        .expect("Rentman BTDB ID is not a valid number");
 
     let harvest = HarvestClient::new(
         harvest_token,
@@ -199,7 +246,8 @@ async fn main() {
         harvest_user_agent,
         nvt_client,
     );
-    let rentman = RentmanClient::new(rentman_token);
+
+    let rentman = RentmanClient::new(rentman_token, btdb_id);
 
     // Clients
     update_clients(&harvest, &rentman).await;
@@ -220,4 +268,5 @@ struct MissingProject {
     rentman_id: String,
     rentman_client_id: i64,
     pp_id: String,
+    is_active: bool,
 }

@@ -2,7 +2,7 @@ use reqwest::Error;
 use serde::{Deserialize, Serialize};
 
 pub struct HarvestClient {
-    pub token: String,
+    token: String,
     pub account_id: String,
     pub user_agent: String,
     pub nvt_client: i64,
@@ -143,6 +143,7 @@ pub struct CreateProject {
     pub name: String,
     pub notes: String,
     pub code: String,
+    pub is_active: bool,
     #[serde(default = "is_billable")]
     pub is_billable: bool,
     #[serde(default = "default_bill_by")]
