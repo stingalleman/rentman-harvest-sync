@@ -26,7 +26,7 @@ impl RentmanClient {
             panic!("Not all contacts are fetched");
         }
 
-        return Ok(res);
+        Ok(res)
     }
 
     pub async fn get_projects(&self) -> Result<Projects, Error> {
@@ -56,7 +56,7 @@ impl RentmanClient {
                 .unwrap_or(0);
         }
 
-        return Ok(res);
+        Ok(res)
     }
 
     // pub async fn get_statuses(&self) -> Result<Vec<StatusesData>, Error> {
@@ -115,7 +115,7 @@ impl RentmanClient {
             data.append(&mut res.data);
         }
 
-        return Ok(data);
+        Ok(data)
     }
 
     // pub async fn get_equipment(&self) -> Result<Vec<EquipmentData>, Error> {

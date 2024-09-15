@@ -42,30 +42,27 @@ async fn update_clients(harvest: &HarvestClient, rentman: &RentmanClient) {
         });
 
         // Client is found, check for updates, then continue to next contact
-        match found_client {
-            Some(client) => {
-                if client.name != contact.name {
-                    // update contact name
-                    println!(
-                        "Updating contact name \"{}\" to \"{}\"",
-                        client.name, contact.name
-                    );
+        if let Some(client) = found_client {
+            if client.name != contact.name {
+                // update contact name
+                println!(
+                    "Updating contact name \"{}\" to \"{}\"",
+                    client.name, contact.name
+                );
 
-                    harvest
-                        .update_client(
-                            client.id,
-                            harvest::UpdateClient {
-                                name: Some(contact.name),
-                                address: None,
-                            },
-                        )
-                        .await
-                        .unwrap();
-                }
-
-                continue;
+                harvest
+                    .update_client(
+                        client.id,
+                        harvest::UpdateClient {
+                            name: Some(contact.name),
+                            address: None,
+                        },
+                    )
+                    .await
+                    .unwrap();
             }
-            None => {}
+
+            continue;
         }
 
         // Push missing client to vec
@@ -180,148 +177,145 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
         });
 
         // Project is found. Check for updates, then continue.
-        match found_project {
-            Some(harvest_project) => {
-                if rentman_project.name != harvest_project.name {
-                    // Update name
+        if let Some(harvest_project) = found_project {
+            if rentman_project.name != harvest_project.name {
+                // Update name
 
-                    println!(
-                        "Updating project: \"{}\" to \"{}\"",
-                        harvest_project.name, rentman_project.name
-                    );
+                println!(
+                    "Updating project: \"{}\" to \"{}\"",
+                    harvest_project.name, rentman_project.name
+                );
 
-                    harvest
-                        .update_project(
-                            harvest_project.id,
-                            harvest::UpdateProject {
-                                client_id: None,
-                                name: Some(rentman_project.name),
-                                notes: None,
-                                code: None,
-                                is_active: None,
-                            },
-                        )
-                        .await
-                        .unwrap();
-                }
+                harvest
+                    .update_project(
+                        harvest_project.id,
+                        harvest::UpdateProject {
+                            client_id: None,
+                            name: Some(rentman_project.name),
+                            notes: None,
+                            code: None,
+                            is_active: None,
+                        },
+                    )
+                    .await
+                    .unwrap();
+            }
 
-                match &harvest_project.code {
-                    Some(code) => {
-                        if rentman_project.number.to_string() != *code {
-                            // Update code
+            match &harvest_project.code {
+                Some(code) => {
+                    if rentman_project.number.to_string() != *code {
+                        // Update code
 
-                            println!(
-                                "Updating project: \"{}\" to \"{}\"",
-                                harvest_project.code.as_ref().unwrap(),
-                                rentman_project.number
-                            );
+                        println!(
+                            "Updating project: \"{}\" to \"{}\"",
+                            harvest_project.code.as_ref().unwrap(),
+                            rentman_project.number
+                        );
 
-                            harvest
-                                .update_project(
-                                    harvest_project.id,
-                                    harvest::UpdateProject {
-                                        client_id: None,
-                                        name: None,
-                                        notes: None,
-                                        code: Some(rentman_project.number.to_string()),
-                                        is_active: None,
-                                    },
-                                )
-                                .await
-                                .unwrap();
-                        }
+                        harvest
+                            .update_project(
+                                harvest_project.id,
+                                harvest::UpdateProject {
+                                    client_id: None,
+                                    name: None,
+                                    notes: None,
+                                    code: Some(rentman_project.number.to_string()),
+                                    is_active: None,
+                                },
+                            )
+                            .await
+                            .unwrap();
                     }
-                    None => {}
                 }
+                None => {}
+            }
 
-                // Define Rentman contact ID from Harvest
-                let harvest_client = match clients.clients.iter().find(|x| {
-                    if x.id == harvest_project.client.id {
-                        return true;
-                    };
+            // Define Rentman contact ID from Harvest
+            let harvest_client = match clients.clients.iter().find(|x| {
+                if x.id == harvest_project.client.id {
+                    return true;
+                };
 
-                    false
-                }) {
-                    Some(x) => x,
-                    None => {
+                false
+            }) {
+                Some(x) => x,
+                None => {
+                    println!("Client not found for project");
+                    continue;
+                }
+            };
+
+            let harvest_client_id = match harvest_client.address.as_ref() {
+                Some(x) => x.parse::<i64>().unwrap_or(0),
+                None => {
+                    println!("Client has no address");
+                    continue;
+                }
+            };
+
+            if rentman_project.customer_id != harvest_client_id {
+                // Update client
+
+                let client_id: i64;
+
+                if rentman_project.customer_id == 0 {
+                    client_id = harvest.nvt_client;
+                } else {
+                    // Find correct Harvest client
+                    let client = clients.clients.iter().find(|x| {
+                        if x.address
+                            .as_ref()
+                            .is_some_and(|v| v == &rentman_project.customer_id.to_string())
+                        {
+                            return true;
+                        };
+
+                        false
+                    });
+
+                    if client.is_none() {
                         println!("Client not found for project");
                         continue;
                     }
-                };
 
-                let harvest_client_id = match harvest_client.address.as_ref() {
-                    Some(x) => x.parse::<i64>().unwrap_or(0),
-                    None => {
-                        println!("Client has no address");
-                        continue;
-                    }
-                };
-
-                if rentman_project.customer_id != harvest_client_id {
-                    // Update client
-
-                    let client_id: i64;
-
-                    if rentman_project.customer_id == 0 {
-                        client_id = harvest.nvt_client;
-                    } else {
-                        // Find correct Harvest client
-                        let client = clients.clients.iter().find(|x| {
-                            if x.address
-                                .as_ref()
-                                .is_some_and(|v| v == &rentman_project.customer_id.to_string())
-                            {
-                                return true;
-                            };
-
-                            false
-                        });
-
-                        if client.is_none() {
-                            println!("Client not found for project");
-                            continue;
-                        }
-
-                        client_id = client.unwrap().id;
-                    }
-                    println!("Updating project: {} client", harvest_project.name,);
-
-                    harvest
-                        .update_project(
-                            harvest_project.id,
-                            harvest::UpdateProject {
-                                client_id: Some(client_id),
-                                name: None,
-                                notes: None,
-                                code: None,
-                                is_active: None,
-                            },
-                        )
-                        .await
-                        .unwrap();
+                    client_id = client.unwrap().id;
                 }
+                println!("Updating project: {} client", harvest_project.name,);
 
-                if is_active != harvest_project.is_active && harvest_project.is_active == true {
-                    println!("Changing archival status for {}", harvest_project.name);
-
-                    harvest
-                        .update_project(
-                            harvest_project.id,
-                            harvest::UpdateProject {
-                                client_id: None,
-                                name: None,
-                                notes: None,
-                                code: None,
-                                is_active: Some(is_active),
-                            },
-                        )
-                        .await
-                        .unwrap();
-                }
-
-                continue;
+                harvest
+                    .update_project(
+                        harvest_project.id,
+                        harvest::UpdateProject {
+                            client_id: Some(client_id),
+                            name: None,
+                            notes: None,
+                            code: None,
+                            is_active: None,
+                        },
+                    )
+                    .await
+                    .unwrap();
             }
-            None => {}
+
+            if is_active != harvest_project.is_active && harvest_project.is_active {
+                println!("Changing archival status for {}", harvest_project.name);
+
+                harvest
+                    .update_project(
+                        harvest_project.id,
+                        harvest::UpdateProject {
+                            client_id: None,
+                            name: None,
+                            notes: None,
+                            code: None,
+                            is_active: Some(is_active),
+                        },
+                    )
+                    .await
+                    .unwrap();
+            }
+
+            continue;
         }
 
         // Push missing project to vec
