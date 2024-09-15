@@ -101,6 +101,7 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
         .await
         .expect("Can't fetch Rentman projects");
 
+    // Get Rentman subprojects
     let rentman_subprojects = rentman
         .get_subprojects()
         .await
@@ -114,6 +115,7 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
         }
     };
 
+    // Vec to store missing projects in Harvest
     let mut missing_projects: Vec<MissingProject> = vec![];
 
     for rentman_project in rentman_projects.data {
