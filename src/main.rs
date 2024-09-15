@@ -400,6 +400,8 @@ async fn main() {
 
     let rentman = RentmanClient::new(rentman_token, btdb_id);
 
+    println!("Starting sync...");
+
     // Clients
     update_clients(&harvest, &rentman).await;
 
