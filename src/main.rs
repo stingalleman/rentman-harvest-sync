@@ -256,10 +256,8 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
             if rentman_project.customer_id != harvest_client_id {
                 // Update client
 
-                let client_id: i64;
-
-                if rentman_project.customer_id == 0 {
-                    client_id = harvest.nvt_client;
+                let client_id: i64 = if rentman_project.customer_id == 0 {
+                    harvest.nvt_client
                 } else {
                     // Find correct Harvest client
                     let client = clients.clients.iter().find(|x| {
@@ -278,8 +276,9 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
                         continue;
                     }
 
-                    client_id = client.unwrap().id;
-                }
+                    client.unwrap().id
+                };
+
                 println!("Updating project: {} client", harvest_project.name,);
 
                 harvest
@@ -329,10 +328,8 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
     }
 
     for project in missing_projects {
-        let client_id: i64;
-
-        if project.rentman_client_id == 0 {
-            client_id = harvest.nvt_client;
+        let client_id: i64 = if project.rentman_client_id == 0 {
+            harvest.nvt_client
         } else {
             // Find correct Harvest client
             let client = clients.clients.iter().find(|x| {
@@ -351,8 +348,8 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
                 continue;
             }
 
-            client_id = client.unwrap().id;
-        }
+            client.unwrap().id
+        };
 
         println!("Creating project: {:?} ({})", project, client_id);
 
