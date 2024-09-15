@@ -36,7 +36,7 @@ impl HarvestClient {
             panic!("Not all clients are fetched");
         }
 
-        return Ok(json);
+        Ok(json)
     }
 
     pub async fn create_client(
@@ -52,6 +52,24 @@ impl HarvestClient {
             .header("Content-Type", "application/json")
             .header("User-Agent", &self.user_agent)
             .json(&create_client)
+            .send()
+            .await
+    }
+
+    pub async fn update_client(
+        &self,
+        id: i64,
+        data: UpdateClient,
+    ) -> Result<reqwest::Response, Error> {
+        let client = reqwest::Client::new();
+
+        client
+            .patch(format!("https://api.harvestapp.com/v2/clients/{}", id))
+            .header("Authorization", format!("Bearer {}", &self.token))
+            .header("Harvest-Account-Id", &self.account_id)
+            .header("Content-Type", "application/json")
+            .header("User-Agent", &self.user_agent)
+            .json(&data)
             .send()
             .await
     }
@@ -74,13 +92,10 @@ impl HarvestClient {
             panic!("Not all clients are fetched");
         }
 
-        return Ok(json);
+        Ok(json)
     }
 
-    pub async fn create_project(
-        &self,
-        create_project: CreateProject,
-    ) -> Result<reqwest::Response, Error> {
+    pub async fn create_project(&self, data: CreateProject) -> Result<reqwest::Response, Error> {
         let client = reqwest::Client::new();
 
         client
@@ -89,7 +104,25 @@ impl HarvestClient {
             .header("Harvest-Account-Id", &self.account_id)
             .header("Content-Type", "application/json")
             .header("User-Agent", &self.user_agent)
-            .json(&create_project)
+            .json(&data)
+            .send()
+            .await
+    }
+
+    pub async fn update_project(
+        &self,
+        id: i64,
+        data: UpdateProject,
+    ) -> Result<reqwest::Response, Error> {
+        let client = reqwest::Client::new();
+
+        client
+            .patch(format!("https://api.harvestapp.com/v2/projects/{}", id))
+            .header("Authorization", format!("Bearer {}", &self.token))
+            .header("Harvest-Account-Id", &self.account_id)
+            .header("Content-Type", "application/json")
+            .header("User-Agent", &self.user_agent)
+            .json(&data)
             .send()
             .await
     }
@@ -104,9 +137,18 @@ pub struct CreateClient {
     pub address: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct UpdateClient {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// ookwel Rentman ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<String>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Clients {
-    pub clients: Vec<Client>,
+    pub clients: Vec<ClientData>,
     pub per_page: i64,
     pub total_pages: i64,
     pub total_entries: i64,
@@ -117,7 +159,7 @@ pub struct Clients {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Client {
+pub struct ClientData {
     pub id: i64,
     pub name: String,
     pub is_active: bool,
@@ -150,6 +192,21 @@ pub struct CreateProject {
     pub bill_by: String,
     #[serde(default = "budget_by")]
     pub budget_by: String,
+}
+
+// projects types
+#[derive(Serialize, Deserialize)]
+pub struct UpdateProject {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_active: Option<bool>,
 }
 
 fn default_bill_by() -> String {

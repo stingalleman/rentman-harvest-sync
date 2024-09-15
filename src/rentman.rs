@@ -59,23 +59,23 @@ impl RentmanClient {
         return Ok(res);
     }
 
-    pub async fn get_statuses(&self) -> Result<Vec<StatusesData>, Error> {
-        let client = reqwest::Client::new();
+    // pub async fn get_statuses(&self) -> Result<Vec<StatusesData>, Error> {
+    //     let client = reqwest::Client::new();
 
-        let res = client
-            .get("https://api.rentman.net/statuses")
-            .header("Authorization", format!("Bearer {}", &self.token))
-            .send()
-            .await?
-            .json::<Statuses>()
-            .await?;
+    //     let res = client
+    //         .get("https://api.rentman.net/statuses")
+    //         .header("Authorization", format!("Bearer {}", &self.token))
+    //         .send()
+    //         .await?
+    //         .json::<Statuses>()
+    //         .await?;
 
-        if res.item_count >= res.limit {
-            panic!("Not all statuses are fetched");
-        }
+    //     if res.item_count >= res.limit {
+    //         panic!("Not all statuses are fetched");
+    //     }
 
-        return Ok(res.data);
-    }
+    //     return Ok(res.data);
+    // }
 
     pub async fn get_subprojects(&self) -> Result<Vec<SubprojectData>, Error> {
         let client = reqwest::Client::new();
