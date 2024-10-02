@@ -153,6 +153,7 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
                 match first {
                     rentman::Status::Geannuleerd => is_active = false,
                     rentman::Status::Retour => is_active = false,
+                    rentman::Status::Factureren => is_active = false,
                     _ => {}
                 }
             }

@@ -270,6 +270,8 @@ pub enum Status {
     Aanvraag,
     #[serde(rename = "/statuses/8")]
     Concept,
+    #[serde(rename = "/statuses/9")]
+    Factureren,
 }
 
 //
