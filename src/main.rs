@@ -118,7 +118,7 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
     // Vec to store missing projects in Harvest
     let mut missing_projects: Vec<MissingProject> = vec![];
 
-    for rentman_project in rentman_projects.data {
+    for mut rentman_project in rentman_projects.data {
         // If project is template, skip
         if rentman_project.name.to_lowercase().contains("template") {
             continue;
@@ -181,6 +181,8 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
 
         // Project is found. Check for updates, then continue.
         if let Some(harvest_project) = found_project {
+            rentman_project.name = rentman_project.name.trim().to_string();
+
             if rentman_project.name != harvest_project.name {
                 // Update name
 
