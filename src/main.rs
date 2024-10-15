@@ -319,6 +319,36 @@ async fn update_projects(harvest: &HarvestClient, rentman: &RentmanClient) {
                     .unwrap();
             }
 
+            if is_active != harvest_project.is_active {
+                let abc = rentman_project.planperiod_start.unwrap_or("0".to_string());
+
+                if abc.contains("2024")
+                    || harvest_project.name.contains("2024")
+                    || harvest_project.name.contains("-24")
+                    || harvest_project.name.contains("/24")
+                    || harvest_project.name.contains("'24")
+                {
+                    println!(
+                        "Archival status is not correct in Harvest for {} ({} - {})",
+                        harvest_project.name, is_active, abc
+                    );
+
+                    harvest
+                        .update_project(
+                            harvest_project.id,
+                            harvest::UpdateProject {
+                                client_id: None,
+                                name: None,
+                                notes: None,
+                                code: None,
+                                is_active: Some(is_active),
+                            },
+                        )
+                        .await
+                        .unwrap();
+                }
+            }
+
             continue;
         }
 

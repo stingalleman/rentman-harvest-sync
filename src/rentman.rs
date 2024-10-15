@@ -202,6 +202,7 @@ pub struct ProjectsData {
     /// Powerproductions ID
     pub number: i64,
     pub tags: String,
+    pub planperiod_start: Option<String>,
 }
 
 //
